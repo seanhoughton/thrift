@@ -69,6 +69,10 @@ bool THttpServer::parseStatusLine(char* status) {
   }
   *http = '\0';
 
+  if (strcmp(method, "OPTIONS") == 0) {
+	flush();
+	return false;
+  }
   if (strcmp(method, "POST") == 0) {
     // POST method ok, looking for content.
     return true;
@@ -91,12 +95,17 @@ void THttpServer::flush() {
     "Content-Type: application/x-thrift" << CRLF <<
     "Content-Length: " << len << CRLF <<
     "Connection: Keep-Alive" << CRLF <<
+    "Access-Control-Allow-Origin: *" << CRLF <<
+    "Access-Control-Allow-Methods: POST, GET, OPTIONS" << CRLF <<
+    "Access-Control-Allow-Headers: X-PINGOTHER, Content-Type" << CRLF <<
+    "Access-Control-Max-Age: 1728000" << CRLF <<
     CRLF;
   string header = h.str();
 
   // Write the header, then the data, then flush
   transport_->write((const uint8_t*)header.c_str(), header.size());
-  transport_->write(buf, len);
+  if(len > 0)
+    transport_->write(buf, len);
   transport_->flush();
 
   // Reset the buffer and header variables
